@@ -4,7 +4,7 @@
 
 need smtp server
 
-contact plugin (v1.3.4) for B3
+contact plugin (v1.3.5) for B3
 
 Installation:
 
