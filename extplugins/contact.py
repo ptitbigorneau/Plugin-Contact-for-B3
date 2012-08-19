@@ -1,7 +1,7 @@
 # Contact Plugin
 
 __author__  = 'PtitBigorneau www.ptitbigorneau.fr'
-__version__ = '1.3.5'
+__version__ = '1.4'
 
 import b3,threading, thread
 import b3.plugin
@@ -13,9 +13,31 @@ import time
 import calendar
 from time import gmtime, strftime
 
+def cdate():
+        
+    time_epoch = time.time() 
+    time_struct = time.gmtime(time_epoch)
+    date = time.strftime('%Y-%m-%d %H:%M:%S', time_struct)
+    mysql_time_struct = time.strptime(date, '%Y-%m-%d %H:%M:%S') 
+    cdate = calendar.timegm( mysql_time_struct)
+
+    return cdate
+
 class ContactPlugin(b3.plugin.Plugin):
 
     _adminPlugin = None    
+    _minlevel = 1
+    _bancontactlevel = 100
+    _acontactlevel = 20
+    _frommail = None
+    _tomail = None
+    _nameserver = "My Server"
+    _smtpserver = "localhost"
+    _maxmessage = 5
+    _tempmaxmessage = 60
+    _tempmessage = 5
+    _gmailusername = None
+    _gmailpwd = None 
     
     def onStartup(self):
         
@@ -38,30 +60,149 @@ class ContactPlugin(b3.plugin.Plugin):
 
     def onLoadConfig(self):
     
-        self._minlevel = self.config.getint('settings', 'minlevel')
-        self._acontactlevel = self.config.getint('settings', 'acontactlevel')
-        self._bancontactlevel = self.config.getint('settings', 'bancontactlevel')
-        self._frommail = self.config.get('settings', 'frommail')
-        self._tomail = self.config.get('settings', 'tomail')
-        self._nameserver = self.config.get('settings', 'nameserver')
-        self._smtpserver = self.config.get('settings', 'smtpserver')
-        self._maxmessage = self.config.getint('settings', 'maxmessage')
-        self._tempmaxmessage = self.config.getint('settings', 'tempmaxmessage')
-        self._tempmessage = self.config.getint('settings', 'tempmessage')
-        self._gmailusername = self.config.get('settings', 'gmailusername')
-        self._gmailpwd = self.config.get('settings', 'gmailpwd')
+        try:
+
+            self._minlevel = self.config.getint('settings', 'minlevel')
         
-       
+        except Exception, err:
+        
+            self.warning("Using default value %s for Autoreg. %s" % (self._minlevel, err))
+        
+        self.debug('minlevel : %s' % (self._minlevel))
+
+
+        try:
+
+            self._acontactlevel = self.config.getint('settings', 'acontactlevel')
+        
+        except Exception, err:
+            
+            self.warning("Using default value %s for acontactlevel. %s" % (self._acontactlevel, err))
+        
+        self.debug('acontactlevel : %s' % (self._acontactlevel))
+
+
+        try:
+
+            self._bancontactlevel = self.config.getint('settings', 'bancontactlevel')
+        
+        except Exception, err:
+            
+            self.warning("Using default value %s for bancontactlevel. %s" % (self._bancontactlevel, err))
+        
+        self.debug('bancontactlevel : %s' % (self._bancontactlevel))
+
+
+        try:
+
+            self._frommail = self.config.get('settings', 'frommail')
+        
+        except Exception, err:
+            
+            self.warning("value for frommail is None. %s" % (err))
+        
+        self.debug('frommail : %s' % (self._frommail))
+
+
+        try:
+
+            self._tomail = self.config.get('settings', 'tomail')
+        
+        except Exception, err:
+            
+            self.warning("value for tomail is None. %s" % (err))
+        
+        self.debug('tomail : %s' % (self._tomail))
+
+
+        try:
+
+            self._nameserver = self.config.get('settings', 'nameserver')
+        
+        except Exception, err:
+            
+            self.warning("Using default value %s for nameserver. %s" % (self._nameserver, err))
+        
+        self.debug('nameserver : %s' % (self._nameserver))
+
+
+        try:
+
+            self._smtpserver = self.config.get('settings', 'smtpserver')
+        
+        except Exception, err:
+            
+            self.warning("Using default value %s for smtpserver. %s" % (self._smtpserver, err))
+        
+        self.debug('smtpserver : %s' % (self._smtpserver))
+
+
+        try:
+
+            self._maxmessage = self.config.getint('settings', 'maxmessage')
+        
+        except Exception, err:
+            
+            self.warning("Using default value %s for maxmessage. %s" % (self._maxmessage, err))
+        
+        self.debug('maxmessage : %s' % (self._maxmessage))
+
+
+        try:
+
+            self._tempmaxmessage = self.config.getint('settings', 'tempmaxmessage')
+        
+        except Exception, err:
+            
+            self.warning("Using default value %s for tempmaxmessage. %s" % (self._tempmaxmessage, err))
+        
+        self.debug('tempmaxmessage : %s' % (self._tempmaxmessage))
+
+
+        try:
+
+            self._tempmessage = self.config.getint('settings', 'tempmessage')
+        
+        except Exception, err:
+            
+            self.warning("Using default value %s for tempmessage. %s" % (self._tempmessage, err))
+        
+        self.debug('tempmessage : %s' % (self._tempmessage))
+
+
+        try:
+
+            self._gmailusername = self.config.get('settings', 'gmailusername')
+        
+        except Exception, err:
+            
+            self.warning("value for gmailusername is None. %s" % (err))
+        
+        self.debug('gmailusername : %s' % (self._gmailusername))
+
+
+        try:
+
+            self._gmailpwd = self.config.get('settings', 'gmailpwd')
+        
+        except Exception, err:
+            
+            self.warning("value for gmailpwd is None. %s" % (err))
+        
+        if self._gmailpwd == None:
+
+            self.debug('gmailpwd : None')
+
+        else:
+
+            self.debug('gmailpwd : ********')
+      
     def cmd_contact(self, data, client, cmd=None):
         """\
         <message> - Message to administrator server
         """
-        
-        time_epoch = time.time() 
-        time_struct = time.gmtime(time_epoch)
-        date = time.strftime('%Y-%m-%d %H:%M:%S', time_struct)
-        mysql_time_struct = time.strptime(date, '%Y-%m-%d %H:%M:%S') 
-        mdate = calendar.timegm( mysql_time_struct)
+
+        mdate = cdate() 
         
         cursor = self.console.storage.query("""
         SELECT *
@@ -107,8 +248,11 @@ class ContactPlugin(b3.plugin.Plugin):
         cursor.close()
 
         if data:
+            
             smessage = data
+        
         else:
+            
             client.message('!contact <message to admin>')
             return
         
@@ -117,6 +261,7 @@ class ContactPlugin(b3.plugin.Plugin):
         smessage = smessage.replace('! ', '!\r\n')
         
         if not smessage:
+            
             client.message('!contact <message to admin>')
             return False
                
@@ -168,6 +313,7 @@ class ContactPlugin(b3.plugin.Plugin):
             """ % (client.id))
             
             if cursor.rowcount > 0:
+                
                 sr = cursor.getRow()
                 cnenvois=sr['nenvois']
                 cnenvois = cnenvois + 1
@@ -178,7 +324,9 @@ class ContactPlugin(b3.plugin.Plugin):
                 """ % (cnenvois, mdate, client.id))
                 cursor.close()
                 return False
+            
             cursor.close()
+            
             cursor = self.console.storage.query("""
             INSERT INTO contact
             VALUES (%s, %s, %s, %s)
@@ -195,8 +343,11 @@ class ContactPlugin(b3.plugin.Plugin):
         """
 
         if data:
+
             input = self._adminPlugin.parseUserCmd(data)
+        
         else:
+            
             client.message('!addmail <your mail address>')
             return
         
@@ -251,13 +402,16 @@ class ContactPlugin(b3.plugin.Plugin):
         if cursor.rowcount == 0:
             client.message("^7You don't have a registered mail address")
             return False
+        
         cursor.close()
         
         cursor = self.console.storage.query("""
         DELETE FROM adminmail
         WHERE client_id = '%s'
         """ % (client.id))
+        
         cursor.close()
+        
         client.message("^7Your mail address has been deleted")
     
     def cmd_listmail(self, data, client, cmd=None):
@@ -274,6 +428,7 @@ class ContactPlugin(b3.plugin.Plugin):
         FROM adminmail
         """)
         c = 1
+        
         if cursor.EOF:
           
             client.message('Admins list with an mail address registered is empty')
@@ -295,11 +450,8 @@ class ContactPlugin(b3.plugin.Plugin):
         """\
         <message> - Message to admin or moderator server
         """
-        time_epoch = time.time() 
-        time_struct = time.gmtime(time_epoch)
-        date = time.strftime('%Y-%m-%d %H:%M:%S', time_struct)
-        mysql_time_struct = time.strptime(date, '%Y-%m-%d %H:%M:%S') 
-        mdate = calendar.timegm( mysql_time_struct)
+
+        mdate = cdate()
         
         cursor = self.console.storage.query("""
         SELECT *
@@ -326,25 +478,34 @@ class ContactPlugin(b3.plugin.Plugin):
                 return False              
         
         cursor.close()
+        
         if data:
             input = self._adminPlugin.parseUserCmd(data)
+        
         else:
             client.message('!acontact <admin> <message>')
             return
+        
         sclient = self._adminPlugin.findClientPrompt(input[0], client)    
+        
         smessage = input[1]
         smessage = smessage.replace('. ', '.\r\n')
         smessage = smessage.replace('? ', '?\r\n')
         smessage = smessage.replace('! ', '!\r\n')
         
         if not sclient:
+            
             client.message('!acontact <admin> <message>')
             client.message('!listcontact For Admins list with an mail address registered')
             return False
+        
         if not smessage:
+            
             client.message('!acontact <admin> <message>')
             return False
+        
         if sclient:
+            
             cursor = self.console.storage.query("""
             SELECT n.client_id
             FROM adminmail n 
@@ -352,10 +513,12 @@ class ContactPlugin(b3.plugin.Plugin):
             """ % (sclient.id))
             
             if sclient.maxLevel<self._acontactlevel:
+                
                 client.message("%s is not admin or moderator"%(sclient.exactName))
                 return False
             
             if cursor.rowcount == 0:
+                
                 client.message("^7Admin don't have a registered mail address")
                 return False
             
@@ -418,6 +581,7 @@ class ContactPlugin(b3.plugin.Plugin):
             """ % (client.id))
             
             if cursor.rowcount > 0:
+                
                 sr = cursor.getRow()
                 cnenvois=sr['nenvois']
                 cnenvois = cnenvois + 1
@@ -426,8 +590,10 @@ class ContactPlugin(b3.plugin.Plugin):
                 SET nenvois= '%s', date= '%s' 
                 WHERE client_id = '%s'
                 """ % (cnenvois, mdate, client.id))
+                
                 cursor.close()
                 return False
+            
             cursor.close()
             cursor = self.console.storage.query("""
             INSERT INTO contact
@@ -443,22 +609,24 @@ class ContactPlugin(b3.plugin.Plugin):
         """\
         <message> - ban from Contact 
         """
-        time_epoch = time.time() 
-        time_struct = time.gmtime(time_epoch)
-        date = time.strftime('%Y-%m-%d %H:%M:%S', time_struct)
-        mysql_time_struct = time.strptime(date, '%Y-%m-%d %H:%M:%S') 
-        mdate = calendar.timegm( mysql_time_struct)
+
+        mdate = cdate() 
         
         if data:
+
             input = self._adminPlugin.parseUserCmd(data)
+
         else:
+            
             client.message('!banacontact <name or id>')
             return
+        
         sclient = self._adminPlugin.findClientPrompt(input[0], client)
         
         if sclient:
             
             if sclient.maxLevel>=self._bancontactlevel:
+                
                 client.message("%s can not be banned from Contact"%(sclient.exactName))
                 return False
             
@@ -469,13 +637,17 @@ class ContactPlugin(b3.plugin.Plugin):
             """ % (sclient.id))
 
             if cursor.rowcount > 0:
+                
                 cursor = self.console.storage.query("""
                 UPDATE contact
                 SET authoriz="0" , date=%s
                 WHERE client_id = %s
                 """ % (sclient.id, mdate))
+                
                 client.message('%s is now ban from Contact' %(sclient.exactName))
+                
                 cursor.close()
+                
                 return False
             cursor.close()
             
@@ -485,22 +657,30 @@ class ContactPlugin(b3.plugin.Plugin):
             """ % (sclient.id, 0, 0, mdate))
 
             cursor.close()        
+            
             client.message('%s is now ban from Contact' %(sclient.exactName))
        
         else:
             return False
+
     def cmd_unbancontact(self, data, client, cmd=None):
         """\
         <message> - unban from Contact
         """
+        
         if data:
+            
             input = self._adminPlugin.parseUserCmd(data)
+        
         else:
+            
             client.message('!unbanacontact <name or id>')
             return
+        
         sclient = self._adminPlugin.findClientPrompt(input[0], client)
         
         if sclient:
+            
             cursor = self.console.storage.query("""
             SELECT n.authoriz
             FROM contact n 
@@ -508,8 +688,10 @@ class ContactPlugin(b3.plugin.Plugin):
             """ % (sclient.id))
         
             if cursor.rowcount == 0:
+                
                 client.message("%s^7 not ban from Contact"%(sclient.exactName))
                 return False
+            
             cursor.close()
         
             cursor = self.console.storage.query("""
@@ -517,6 +699,7 @@ class ContactPlugin(b3.plugin.Plugin):
             SET authoriz="1"
             WHERE client_id = %s
             """ % (sclient.id))
+            
             cursor.close()
             
             client.message("%s^7 is unban from Contact"%(sclient.exactName))
@@ -548,13 +731,17 @@ class ContactPlugin(b3.plugin.Plugin):
             cdate = time.strftime('%d-%m-%Y %H:%M',time.localtime(sr['date']))
             cauthoriz = sr['authoriz']
             scid= '@'+str(cid)
+            
             if cauthoriz==0:
                 cstatus='^1Banned'
             if cauthoriz==1:
                 cstatus='^2Authorized'                   
+            
             sclient = self._adminPlugin.findClientPrompt(scid, client)
             client.message('^2%s^7- ID : ^2@%s^7 - Date : ^2%s^7 - Status %s^7' %(sclient.name, sclient.id, cdate, cstatus))
+            
             cursor.moveNext()
+            
             c += 1
         
         cursor.close()
@@ -563,7 +750,9 @@ class ContactPlugin(b3.plugin.Plugin):
         SELECT *
         FROM contact
         """)
+
         c = 1
+
         message = '\r\n'
         
         if cursor.EOF:
@@ -579,13 +768,17 @@ class ContactPlugin(b3.plugin.Plugin):
             cdate = time.strftime('%d-%m-%Y %H:%M',time.localtime(sr['date']))
             cauthoriz = sr['authoriz']
             scid= '@'+str(cid)
+
             if cauthoriz==0:
                 cstatus='Banned'
             if cauthoriz==1:
                 cstatus='Authorized'                   
+
             sclient = self._adminPlugin.findClientPrompt(scid, client)
             message= message + '%s - ID : @%s - Guid : %s - IP : %s - Date : %s - Status : %s\r\n' % (sclient.name, sclient.id, sclient.guid, sclient.ip, cdate, cstatus)
+            
             cursor.moveNext()
+            
             c += 1
             
         cursor.close()    
@@ -609,9 +802,13 @@ class ContactPlugin(b3.plugin.Plugin):
         """\
         <message> - Look if player is in Contact list 
         """
+
         if data:
+        
             input = self._adminPlugin.parseUserCmd(data)
+
         else:
+            
             client.message('!lookcontact <name or id>')
             return
         
@@ -633,13 +830,15 @@ class ContactPlugin(b3.plugin.Plugin):
             sr = cursor.getRow()
             cauthoriz = sr['authoriz']
             cdate = time.strftime('%d-%m-%Y %H:%M',time.localtime(sr['date']))
+            
             if cauthoriz==0:
                 cstatus='^1Banned'
             if cauthoriz==1:
                 cstatus='^2authorized'                   
                         
-            client.message('^2%s^7 - id : ^2@%s^7 - Date : ^2%s^7 - Status : %s^7' % (sclient.exactName, sclient.id, cdate, cstatus))
-            
+            client.message('^2%s^7 - id : ^2@%s^7 - Date : ^2%s^7' % (sclient.exactName, sclient.id, cdate))
+            client.message('^7Status : %s^7' % (cstatus))
+
             cursor.close()
         else:
             return False
