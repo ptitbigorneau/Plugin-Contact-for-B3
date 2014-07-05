@@ -1,10 +1,10 @@
 # contact plugin
-# Plugin for B3 (www.bigbrotherbot.com)
+# Plugin for B3 (www.bigbrotherbot.net)
 # www.ptitbigorneau.fr
 
 need smtp server
 
-contact plugin (v1.4) for B3
+contact plugin (v1.5) for B3
 
 Installation:
 

@@ -1,7 +1,7 @@
 # Contact Plugin
 
 __author__  = 'PtitBigorneau www.ptitbigorneau.fr'
-__version__ = '1.4'
+__version__ = '1.5'
 
 import b3,threading, thread
 import b3.plugin
@@ -29,6 +29,7 @@ class ContactPlugin(b3.plugin.Plugin):
     _minlevel = 1
     _bancontactlevel = 100
     _acontactlevel = 20
+    _comeplaylevel = 100   
     _frommail = None
     _tomail = None
     _nameserver = "My Server"
@@ -57,6 +58,7 @@ class ContactPlugin(b3.plugin.Plugin):
         self._adminPlugin.registerCommand(self,'unbancontact',self._bancontactlevel, self.cmd_unbancontact, 'ucontact')
         self._adminPlugin.registerCommand(self,'listcontact',self._bancontactlevel, self.cmd_listcontact, 'ltcontact')   
         self._adminPlugin.registerCommand(self,'lookcontact',self._acontactlevel, self.cmd_lookcontact, 'lkcontact')
+        self._adminPlugin.registerCommand(self,'comeplay',self._comeplaylevel, self.cmd_comeplay)
 
     def onLoadConfig(self):
     
@@ -91,6 +93,16 @@ class ContactPlugin(b3.plugin.Plugin):
             self.warning("Using default value %s for bancontactlevel. %s" % (self._bancontactlevel, err))
         
         self.debug('bancontactlevel : %s' % (self._bancontactlevel))
+
+        try:
+
+            self._comeplaylevel = self.config.getint('settings', 'comeplaylevel')
+        
+        except Exception, err:
+            
+            self.warning("Using default value %s for comeplaylevel. %s" % (self._comeplaylevel, err))
+        
+        self.debug('comeplaylevel : %s' % (self._comeplaylevel))
 
 
         try:
@@ -196,7 +208,48 @@ class ContactPlugin(b3.plugin.Plugin):
         else:
 
             self.debug('gmailpwd : ********')
-      
+
+    def comeplaymessage(self):
+
+        server = self._nameserver
+        mto = self._tomail
+        mfrom = self.mail
+        server = self._nameserver
+        smtpserver = self._smtpserver
+        gmailusername = self._gmailusername
+        gmailpwd = self._gmailpwd
+            
+        sujetmail = 'Invitation to play on the server: ' + server
+
+        message= 'Hi ' + self.recipient + '\r\n\n ' + self.sender + ' invite you to come and play on' + server + '\r\n\n'
+                                          
+        if smtpserver == 'smtp.gmail.com' :
+           
+            email = MIMEText.MIMEText(message) 
+            email['From']=mfrom
+            email['To']=mto 
+            email['Subject']=sujetmail 
+            server = smtplib.SMTP('smtp.gmail.com',587)
+            server.set_debuglevel(1)
+            server.ehlo(gmailusername)
+            server.starttls()
+            server.ehlo()
+            server.login(gmailusername, gmailpwd)
+            server.sendmail(mfrom, mto, email.as_string())
+            server.quit()
+
+        else:
+               
+            email = MIMEText.MIMEText(message) 
+            email['From']=mfrom
+            email['To']=mto 
+            email['Subject']=sujetmail 
+            server = smtplib.SMTP(smtpserver) 
+            server.sendmail(mfrom, mto, email.as_string())
+            server.quit()
+	
+        return
+			
     def cmd_contact(self, data, client, cmd=None):
         """\
         <message> - Message to administrator server
@@ -604,6 +657,48 @@ class ContactPlugin(b3.plugin.Plugin):
        
         else:
             return False
+
+    def cmd_comeplay(self, data, client, cmd=None):
+        """\
+        <message> - Message to invite all players who have their email addresses in the list
+        """
+         
+        thread.start_new_thread(self.comeplay, (data, client))
+        
+    def comeplay(self, data, client):
+        """\
+        <message> - Message to invite all players who have their email addresses in the list
+        """
+
+        self.sender = client.name
+       
+        cursor = self.console.storage.query("""
+        SELECT *
+        FROM adminmail
+        """)
+        c = 1
+        
+        if cursor.EOF:
+          
+            client.message('Admins list with an mail address registered is empty')
+            cursor.close()            
+            return False
+        
+        while not cursor.EOF:
+            sr = cursor.getRow()
+            cid = sr['client_id']
+            scid = '@'+str(cid)
+            self.mail = sr['mail']
+            sclient = self._adminPlugin.findClientPrompt(scid, client)
+            self.recipient = sclient.name
+            
+            self.comeplaymessage()
+            cursor.moveNext()
+            c += 1
+            
+        cursor.close()           
+
+        client.message('All invitations have been sent !')
 
     def cmd_bancontact(self, data, client, cmd=None):
         """\
