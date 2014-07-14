@@ -212,8 +212,8 @@ class ContactPlugin(b3.plugin.Plugin):
     def comeplaymessage(self):
 
         server = self._nameserver
-        mto = self._tomail
-        mfrom = self.mail
+        mto = self.mail
+        mfrom = self._frommail
         server = self._nameserver
         smtpserver = self._smtpserver
         gmailusername = self._gmailusername
